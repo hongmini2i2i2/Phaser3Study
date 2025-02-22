@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-// import Config from "../Config";
+import Config from "../Config";
 import { clamp } from "../utils/math";
 
 // TODO: HpBar와 겹치는 부분 클래스로 분리

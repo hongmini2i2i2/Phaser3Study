@@ -20,8 +20,8 @@ export default class MainScene extends Phaser.Scene {
     this.add.image(Config.width / 2, Config.height / 2, "cat");
 
     new Button(
-      Config.width / 2,
-      Config.height / 2 + 150,
+      Config.width / 2, //중앙정렬기준
+      Config.height / 2 + 150, //위에서 아래로
       "Start Game",
       this,
       () => this.scene.start("playGame")

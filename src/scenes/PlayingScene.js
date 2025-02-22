@@ -44,54 +44,57 @@ export default class PlayingScene extends Phaser.Scene {
       loop: true,
       delay: 0,
     };
-    this.m_music.play(musicConfig);
+    this.m_music.play(musicConfig); //설정config를 인자로 전달
 
     // background
-    this.m_background = this.add.tileSprite(
-      0,
-      0,
-      Config.width,
-      Config.height,
-      "background"
-    );
-    this.m_background.setOrigin(0, 0);
+    this.m_background = this.add
+      .tileSprite( //타일처럼 다닥다닥 붙여서 보여주는 이미지
+        0,
+        0,
+        Config.width,
+        Config.height,
+        "background" //프리로드 백그라운드
+      )
+      .setScrollFactor(1);
+    this.m_background.setOrigin(0, 0); //타일처럼 배경 맞출때는 0,0
 
     // topBar, expBar
-    this.m_topBar = new TopBar(this);
-    this.m_expBar = new ExpBar(this, 50);
+    this.m_topBar = new TopBar(this); //이 화면(this) 인자로 전달
+    this.m_expBar = new ExpBar(this, 50); //이화면, 맥스경험치 전달
 
     // mobs
-    this.m_mobs = this.physics.add.group();
+    this.m_mobs = this.physics.add.group(); //항상 몹 추가할때는 this.physics에 추가하는것 // 몹 저장 그룹 생성
     // 맨 처음 mob 하나 추가 (안 추가하면 closest mob 찾는 부분에서 에러 발생)
     this.m_mobs.add(
       new Mob(
         this,
-        Config.width / 2 - 200,
-        Config.height / 2 - 200,
-        "bat",
-        "bat_anim",
-        10
+        Config.width / 2 - 200, //절반에서 왼쪽으로 200
+        Config.height / 2 - 100, //절반에서 위로 200
+        "bat", //이미지 키(프리로드 설정)
+        "bat_anim", //애니메이션 키 (로딩에 설정해둔거)
+        10//드랍확률
       )
     );
 
     // projectiles
-    this.m_projectiles = this.add.group();
+    this.m_projectiles = this.add.group();//총알을 저장할 그룹 생성.
 
     // exp up item
-    this.m_expUps = this.physics.add.group();
+    this.m_expUps = this.physics.add.group(); //exp 아이템 저장할 그룹 생성
 
     // player
     this.m_player = new Player(this);
-    this.cameras.main.startFollow(this.m_player);
+    this.cameras.main.startFollow(this.m_player); //플레이어 따라다니게 카메라 세팅
 
     // keys
-    this.m_cursorKeys = this.input.keyboard.createCursorKeys();
+    this.m_cursorKeys = this.input.keyboard.createCursorKeys(); //방향키 등록
     this.m_wasdKeys = this.input.keyboard.addKeys({
       up: Phaser.Input.Keyboard.KeyCodes.W,
       down: Phaser.Input.Keyboard.KeyCodes.S,
       left: Phaser.Input.Keyboard.KeyCodes.A,
       right: Phaser.Input.Keyboard.KeyCodes.D,
-    });
+    }); //wasd 키 등록
+    this.m_escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
     // collisions
     // collider : 충돌 -> 바운스 O
@@ -99,18 +102,19 @@ export default class PlayingScene extends Phaser.Scene {
 
     /**
      * overlap : Creates a new Arcade Physics Collider Overlap object.
-     * @param object1 The first object to check for overlap.
+     * @param object1 The first object to check for overlap. //오버랩 파라미터 설정
      * @param object2 The second object to check for overlap.
      * @param collideCallback The callback to invoke when the two objects collide.
      * @param processCallback The callback to invoke when the two objects collide. Must return a boolean.
      * @param callbackContext The scope in which to call the callbacks.
      */
-    this.physics.add.overlap(
+    this.physics.add.overlap( //오버랩했을때 
       this.m_player,
-      this.m_expUps,
-      this.pickExpUp,
-      null,
-      this
+      this.m_expUps, //이 두개 오버랩되면
+      (player, expUp) => this.pickExpUp(player, expUp),//경험치픽업해라 그냥 !!!this.pickExpUp!!!해도 됨.
+      null, //두 객체가 겹쳤을 때, 실제로 collideCallback을 실행할지 여부를 결정하는 함수. 반드시 true를 반환해야 collideCallback이 실행됩니다.
+      //특정 조건에서만 충돌 이벤트를 발생시키고 싶을 때 사용합니다. null을 넣으면 기본적으로 무조건 true가 반환되어 collideCallback이 실행됩니다.
+      this //이 객체에서 콜백호출하라고 객체 줌
     );
     this.physics.add.overlap(
       this.m_player,
@@ -122,32 +126,31 @@ export default class PlayingScene extends Phaser.Scene {
     this.physics.add.overlap(
       this.m_projectiles,
       this.m_mobs,
-      (projectile, mob) => {
+      (projectile, mob) => { //충돌한 위에 두개를 phaser이 자동으로 인자로 넣어줌
         mob.hit(projectile, 10);
       },
       null,
       this
     );
-    this.physics.add.overlap(this.m_projectiles, this.m_mobs, null, null, this);
 
     // event handler
     // ESC 키를 눌러 일시정지 할 수 있습니다.
     this.input.keyboard.on(
       "keydown-ESC",
       () => {
-        global_pause("playGame");
+        global_pause("playGame"); //씬 이름 전달해 조작
       },
-      this
+      this //컨텍스트 전달
     );
 
     // runtime
     this.m_secondElapsed = 0;
     this.m_timeText = this.add
-      .text(Config.width / 2, 100, "00:00:00", { fontSize: 30 })
-      .setOrigin(0.5)
-      .setDepth(105)
-      .setScrollFactor(0);
-    this.time.addEvent({
+      .text(Config.width / 2, 300, "00:00:00", { fontSize: 30 })
+      .setOrigin(0.5) //텍스트의 중앙 기준으로 xy 설정
+      .setDepth(105) //z-index 설정 ... 크면 위에
+      .setScrollFactor(0); //카메라와 상관없이 오브젝트ㅋ 고정. 0이면 고정 1이면 따라이동 0.5면 절반만
+    this.time.addEvent({ //time은 기본제공 메소드
       callback: () => {
         this.m_secondElapsed += 1;
         this.m_timeText.setText(getTimeString(this.m_secondElapsed));
@@ -161,7 +164,7 @@ export default class PlayingScene extends Phaser.Scene {
   }
   //////////////////////////// END OF create() ////////////////////////////
 
-  update() {
+  update() { //매 프레임마다 실행하는 코드.(그냥 무한루프되는 코드임.)
     this.movePlayerManager();
 
     // 무한 배경 구현
@@ -170,7 +173,7 @@ export default class PlayingScene extends Phaser.Scene {
     this.m_background.tilePositionX = this.m_player.x - 400;
     this.m_background.tilePositionY = this.m_player.y - 300;
 
-    /// player로부터 가장 가까운 mob으ㄹ 구합니다.
+    /// player로부터 가장 가까운 mob으ㄹ 구합니다. 매 프레임마다
     const closest = this.physics.closest(
       this.m_player,
       this.m_mobs.getChildren()
@@ -214,11 +217,7 @@ export default class PlayingScene extends Phaser.Scene {
       delay: 1000,
       callback: () => {
         // 화면 바깥에서 나타나도록 해줍니다.
-        const r =
-          Math.sqrt(
-            Config.width * Config.width + Config.height * Config.height
-          ) / 2;
-        let [x, y] = getRandomPosition(this.m_player.x, this.m_player.y, r);
+        let [x, y] = getRandomPosition(this.m_player.x, this.m_player.y);
         this.m_mobs.add(
           new Mob(this, x, y, mobTexture, mobAnim, mobHp, mobDropRate)
         );
@@ -259,7 +258,7 @@ export default class PlayingScene extends Phaser.Scene {
     ];
     this.m_textLevel = this.add
       .text(Config.width / 2, Config.height / 2, texts, { fontSize: 40 })
-      .setOrigin(0.5)
+      .setOrigin(0.5) //중앙에 x y 맞추기
       .setDepth(120)
       .setScrollFactor(0);
 

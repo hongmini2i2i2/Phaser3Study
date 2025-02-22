@@ -3,6 +3,8 @@ import game from "../index";
 let level_scene_paused = false;
 let level_time_paused = Date.now() - 100;
 
+console.log(level_time_paused);
+
 export default function level_pause(scene) {
   if (Date.now() - level_time_paused > 100 && game.scene.isActive(scene)) {
     game.scene.pause(scene);
